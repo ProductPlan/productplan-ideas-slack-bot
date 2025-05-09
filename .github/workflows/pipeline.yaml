@@ -1,0 +1,128 @@
+name: Pipeline
+
+description: |
+  This pipeline builds and deploys the ProductPlan Ideas Slack Bot to AWS.
+  It runs on every push to the main branch and on every pull request to the main branch.
+  It runs unit tests, builds the lambda function, packages it, and deploys it to AWS.
+
+env:
+  AI_FOUNDATION_MODEL: us.anthropic.claude-3-7-sonnet-20250219-v1:0 # https://www.anthropic.com/claude/sonnet
+  AWS_REGION: us-east-1
+  PRODUCTPLAN_BASE_URL: https://app.productplan.com/api
+  SAM_TEMPLATE: template.yaml
+  STACK_NAME: productplan-ideas-slack-bot
+  HUSKY: 0
+
+on: push
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Run unit tests
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout latest code
+        uses: actions/checkout@v4
+      - name: Install Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+      - name: Install and audit packages
+        run: npm ci && npm audit --audit-level=high
+        env:
+          NODE_ENV: test
+      - name: Run tests
+        run: npm run test
+
+  build-and-package:
+    name: Build and package lambda
+    if: github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout latest code
+        uses: actions/checkout@v4
+      - name: Install Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.8
+      - name: Install AWS SAM
+        uses: aws-actions/setup-sam@v2
+
+      - name: Install Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+      - name: Build resources
+        run: sam build --template ${{ env.SAM_TEMPLATE }} --use-container --container-env-var NODE_ENV=production
+
+      - name: Assume the pipeline user role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.PIPELINE_ROLE_ARN }}
+          role-session-name: prod-packaging
+          role-duration-seconds: 3600
+          role-skip-session-tagging: true
+
+      - name: Upload artifacts to production artifact buckets
+        run: |
+          sam package \
+            --s3-bucket ${{ secrets.AWS_S3_ARTIFACTS_BUCKET }} \
+            --s3-prefix ${{ env.STACK_NAME }} \
+            --region ${{ env.AWS_REGION }} \
+            --output-template-file packaged-prod.yaml
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packaged-prod.yaml
+          path: packaged-prod.yaml
+
+  deploy-lambda:
+    name: Deploy lambda
+    needs: build-and-package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout latest code
+        uses: actions/checkout@v4
+      - name: Install Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.8
+      - name: Install AWS SAM
+        uses: aws-actions/setup-sam@v2
+      - uses: actions/download-artifact@v4
+        with:
+          name: packaged-prod.yaml
+
+      - name: Assume the pipeline user role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.PIPELINE_ROLE_ARN }}
+          role-session-name: prod-deployment
+          role-duration-seconds: 3600
+          role-skip-session-tagging: true
+
+      - name: Deploy to account
+        run: |
+          sam deploy --stack-name ${{ env.STACK_NAME }} \
+            --template packaged-prod.yaml \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --region ${{ env.AWS_REGION }} \
+            --s3-bucket ${{ secrets.AWS_S3_ARTIFACTS_BUCKET }} \
+            --s3-prefix ${{ env.STACK_NAME }} \
+            --no-fail-on-empty-changeset \
+            --role-arn ${{ secrets.CLOUDFORMATION_ROLE_ARN }} \
+            --parameter-overrides AIFoundationModel=${{ env.AI_FOUNDATION_MODEL }} \
+              ProductPlanApiToken=${{ secrets.PRODUCTPLAN_API_TOKEN }} \
+              ProductPlanBaseUrl=${{ env.PRODUCTPLAN_BASE_URL }} \
+              SlackApplicationID=${{ secrets.SLACK_APPLICATION_ID }} \
+              SlackOAuthToken=${{ secrets.SLACK_OAUTH_TOKEN }}

@@ -1,0 +1,151 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Slack bot for capturing ideas and sending to ProductPlan
+
+Transform:
+  - AWS::Serverless-2016-10-31
+
+Parameters:
+  AIFoundationModel:
+    Type: String
+    Description: Foundation model for processing ideas
+  ProductPlanApiToken:
+    Type: String
+    Description: API token for ProductPlan
+  ProductPlanBaseUrl:
+    Type: String
+    Description: Base URL for ProductPlan API
+  SlackApplicationID:
+    Type: String
+    Description: Application ID for the Slack bot
+  SlackOAuthToken:
+    Type: String
+    Description: Slack bot OAuth Token
+
+Resources:
+  # API Gateway
+
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowHeaders:
+          - Content-Type
+          - X-Amz-Date
+          - X-Amz-Security-Token
+          - X-Requested-With
+          - x-Slack-Retry-Num
+        AllowMethods:
+          - POST
+      FailOnWarnings: true
+      StageName: v1
+
+  # Lambda
+
+  ProcessSlackEventFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/post-slack-event.postSlackEventHandler
+      Runtime: nodejs22.x
+      Architectures:
+        - x86_64
+      MemorySize: 1536
+      Description: Accepts a Slack event, passes it to another lambda for processing, and responds OK
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - LambdaInvokePolicy:
+            FunctionName: !Ref RespondToSlackEventFunction
+      Environment:
+        Variables:
+          LAMBDA_FUNCTION_NAME: !Ref RespondToSlackEventFunction
+          SLACK_APPLICATION_ID: !Ref SlackApplicationID
+      Events:
+        Http:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /slack-events
+            Method: post
+      Timeout: 10
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: 'es2020'
+        Sourcemap: true
+        EntryPoints:
+          - src/handlers/post-slack-event.ts
+
+  ProcessSlackEventLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${ProcessSlackEventFunction}
+      RetentionInDays: 30 # This will be created with infinite retention if we don't specify
+
+  RespondToSlackEventFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/execute-slack-event.executeSlackEventHandler
+      Runtime: nodejs22.x
+      Architectures:
+        - x86_64
+      MemorySize: 1024
+      Description: Responds to Slack events
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SessionTable
+        # Allow the lambda to invoke any foundation model or inference profile
+        - Version: 2012-10-17
+          Statement:
+            - Action:
+                - 'bedrock:InvokeModel*'
+              Effect: Allow
+              Resource: '*'
+      Environment:
+        Variables:
+          BEDROCK_FOUNDATION_MODEL: !Ref AIFoundationModel
+          DYNAMODB_TABLE_SESSIONS: !Ref SessionTable
+          PRODUCTPLAN_API_TOKEN: !Ref ProductPlanApiToken
+          PRODUCTPLAN_BASE_URL: !Ref ProductPlanBaseUrl
+          SESSION_EXPIRE_HOURS: 24
+          SLACK_APPLICATION_ID: !Ref SlackApplicationID
+          SLACK_OAUTH_TOKEN: !Ref SlackOAuthToken
+      Timeout: 60
+      Tracing: Active
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: 'es2020'
+        Sourcemap: true
+        EntryPoints:
+          - src/handlers/execute-slack-event.ts
+
+  RespondToSlackEventLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${RespondToSlackEventFunction}
+      RetentionInDays: 30 # This will be created with infinite retention if we don't specify
+
+  # DynamoDB
+
+  SessionTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: SessionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: SessionId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      # Timestamp, in seconds, that records expire and will be automatically deleted
+      TimeToLiveSpecification:
+        AttributeName: ExpireAt
+        Enabled: true
+
+Outputs:
+  HttpApiUrl:
+    Description: URL of your API endpoint
+    Value: !Sub 'https://${HttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/v1'

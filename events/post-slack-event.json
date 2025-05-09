@@ -1,0 +1,13 @@
+{
+  "body": "{\"token\":\"tttttoooookkkkkeeeeennnnn\",\"team_id\":\"T123ABC456\",\"api_app_id\":\"A123ABC456\",\"channel\":\"C123ABC456\",\"event\":{\"user\":\"U123ABC456\",\"type\":\"app_mention\",\"ts\":\"1728393163.712429\",\"client_msg_id\":\"3e87d70e-a9e7-4e8b-98a6-661154ef5cfe\",\"text\":\"<@U07QQDVLYVB> How do I move a bar?\",\"team\":\"T123ABC456\",\"channel\":\"C123ABC456\",\"event_ts\":\"1465244570.336841\"},\"type\":\"event_callback\",\"authed_users\":[\"U222222222\"],\"authed_teams\":[\"T123ABC456\"],\"authorizations\":[{\"enterprise_id\":\"E123ABC456\",\"team_id\":\"T123ABC456\",\"user_id\":\"U123ABC456\",\"is_bot\":false}],\"event_context\":\"EC123ABC456\",\"event_id\":\"Ev123ABC456\",\"event_time\":1234567890,\"thread_ts\":\"1728393163.712429\"}",
+  "requestContext": {
+    "http": {
+      "method": "POST",
+      "path": "/v1/slack-events"
+    }
+  },
+  "headers": {
+    "Accept": "application/json",
+    "Content-Type": "application/json"
+  }
+}
