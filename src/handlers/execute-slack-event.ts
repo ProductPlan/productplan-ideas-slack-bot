@@ -14,7 +14,6 @@ Given the chat history and existing idea information, compile the idea into a st
 - If any fields are missing, prompt the user for the missing information.
 - Format the fields submitted grammatically, but do not change the meaning.
 - ALWAYS return a valid JSON object, correctly escaping \\n and \\" characters. No not give a preamble.
-- Think about your response in <thinking> tags.
 
 Return a JSON object with the following key / value pairs:
 - \`complete\`: true if the idea is complete, false if it is not

@@ -32,11 +32,13 @@ describe('invokeModel', () => {
       body: new TextEncoder().encode(
         JSON.stringify({
           anthropic_version: 'bedrock-2023-05-31',
-          max_tokens: 130_000,
+          max_tokens: 40_000,
           messages: history,
           system: prompt,
-          temperature: 0.4,
-          top_k: 250,
+          thinking: {
+            type: 'enabled',
+            budget_tokens: 20_000,
+          },
         }),
       ),
       contentType: 'application/json',
@@ -52,11 +54,13 @@ describe('invokeModel', () => {
       body: new TextEncoder().encode(
         JSON.stringify({
           anthropic_version: 'bedrock-2023-05-31',
-          max_tokens: 130_000,
+          max_tokens: 40_000,
           messages: history,
           system: 'You are a helpful assistant. {"foo":"bar"}',
-          temperature: 0.4,
-          top_k: 250,
+          thinking: {
+            type: 'enabled',
+            budget_tokens: 20_000,
+          },
         }),
       ),
       contentType: 'application/json',
@@ -65,7 +69,9 @@ describe('invokeModel', () => {
   })
 
   it('should throw an error if the response cannot be parsed', async () => {
-    mockSend.mockResolvedValueOnce({ body: new TextEncoder().encode(JSON.stringify({ content: [{ text: '' }] })) })
+    mockSend.mockResolvedValueOnce({
+      body: new TextEncoder().encode(JSON.stringify({ content: [{ type: 'text', text: '' }] })),
+    })
     await expect(invokeModel(prompt, history)).rejects.toThrow('Unexpected end of JSON input')
   })
 })
