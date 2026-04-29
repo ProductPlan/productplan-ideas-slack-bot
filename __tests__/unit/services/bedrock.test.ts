@@ -40,7 +40,7 @@ describe('invokeModel', () => {
         }),
       ),
       contentType: 'application/json',
-      modelId: 'us.anthropic.claude-3-7-sonnet-20250219-v1:0',
+      modelId: 'us.anthropic.claude-haiku-4-5-20251001-v1:0',
     })
   })
 
@@ -60,7 +60,7 @@ describe('invokeModel', () => {
         }),
       ),
       contentType: 'application/json',
-      modelId: 'us.anthropic.claude-3-7-sonnet-20250219-v1:0',
+      modelId: 'us.anthropic.claude-haiku-4-5-20251001-v1:0',
     })
   })
 

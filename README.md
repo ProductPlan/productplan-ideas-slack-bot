@@ -17,7 +17,7 @@ This project uses AWS infrastructure to respond to Slack events and submit ideas
 - [Lambda](https://aws.amazon.com/lambda/) - We will host our code as in AWS Lambda. It is serverless and will only run on demand.
 - [API Gateway](https://aws.amazon.com/api-gateway/) - API Gateway will generate an endpoint and route requests to our Lambda.
 - [DynamoDB](https://aws.amazon.com/dynamodb/) - DynamoDB is a serverless NoSQL database with built-in record cleanup. We will use it to store data about conversation sessions, allowing our bot to remember information it has already ascertained.
-- [Bedrock](https://aws.amazon.com/bedrock/) - We will use AI through Bedrock to identify ideas in natural text and translate them into JSON our code can consume. Our AI model will be [Claude Sonnet 3.7](https://www.anthropic.com/claude/sonnet).
+- [Bedrock](https://aws.amazon.com/bedrock/) - We will use AI through Bedrock to identify ideas in natural text and translate them into JSON our code can consume. Our AI model will be [Claude Haiku 4.5](https://www.anthropic.com/claude/haiku).
 - [CloudFormation](https://aws.amazon.com/cloudformation/) - CloudFormation will manage our AWS infrastructure.
 
 Addtionally, our code uses [AWS Serverless Application Model](https://aws.amazon.com/serverless/sam/) to handle some of the complexities of Lambda development.

@@ -4,7 +4,7 @@ process.env.AWS_REGION = 'us-east-1'
 
 // Bedrock Agent
 
-process.env.BEDROCK_FOUNDATION_MODEL = 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'
+process.env.BEDROCK_FOUNDATION_MODEL = 'us.anthropic.claude-haiku-4-5-20251001-v1:0'
 
 // DynamoDB
 

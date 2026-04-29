@@ -31,7 +31,7 @@ export const invokeModelResponse = {
       id: 'msg_bdrk_01YA7pmVfUZvZM9reruSimYT',
       type: 'message',
       role: 'assistant',
-      model: 'claude-3-7-sonnet-20250219-v1',
+      model: 'us.anthropic.claude-haiku-4-5-20251001-v1:0',
       content: [
         {
           type: 'text',

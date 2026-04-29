@@ -6,7 +6,7 @@ description: |
   It runs unit tests, builds the lambda function, packages it, and deploys it to AWS.
 
 env:
-  AI_FOUNDATION_MODEL: us.anthropic.claude-3-7-sonnet-20250219-v1:0 # https://www.anthropic.com/claude/sonnet
+  AI_FOUNDATION_MODEL: us.anthropic.claude-haiku-4-5-20251001-v1:0 # https://www.anthropic.com/claude/haiku
   AWS_REGION: us-east-1
   PRODUCTPLAN_BASE_URL: https://app.productplan.com/api
   SAM_TEMPLATE: template.yaml
